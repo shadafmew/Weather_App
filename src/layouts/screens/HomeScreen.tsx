@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View, Text, TextInput, StyleSheet, PermissionsAndroid, Image, ActivityIndicator, Dimensions, ScrollView, ImageBackground, Switch } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign'
 import LinearGradient from 'react-native-linear-gradient';
@@ -8,11 +8,11 @@ import Fontisto from 'react-native-vector-icons/Fontisto'
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6'
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5'
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
+import axios from 'axios';
 
 
 const API_KEY = 'd51f99851158ded3942f86866396ec40';
 const API_URL = `https://api.openweathermap.org/data/2.5/weather?appid=${API_KEY}&units=metric&q=`;
-const API_URL_FORECAST = `http://api.openweathermap.org/data/2.5/forecast?id=1273294&appid=${API_KEY}`;
 
 
 const { width, height } = Dimensions.get('window');
@@ -23,17 +23,12 @@ const formatDate = (dateString) => {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat('en-US', options).format(date);
 };
+
 const HomeScreen = () => {
   const [city, setCity] = useState('');
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [darkMode, setDarkMode] = useState(false);
-  const [cityId, setCityId] = useState(null);
-  const [forecast, setForecast] = useState(null);
-  const [list, setList] = useState([]);
-  const [location, setLocation] = useState(null);
-
 
   // =================CODE FOR DARK MODE
 
@@ -56,17 +51,6 @@ const HomeScreen = () => {
         setCityId(api.id);
         setError('');
         console.log(api);
-
-        // Fetch forecast data
-        const forecastResponse = await fetch(`http://api.openweathermap.org/data/2.5/forecast?id=${api.id}&appid=${API_KEY}`);
-        const forecastApi = await forecastResponse.json();
-        if (forecastResponse.status === 200) {
-          const filteredData = filterForecastByDate(forecastApi.list);
-          setForecast(forecastApi);
-          setList(filteredData);
-        } else {
-          setError('Error fetching forecast data');
-        }
       } else {
         setError('Location not found');
       }
@@ -119,65 +103,6 @@ const HomeScreen = () => {
   };
 
   // ================= ICONS CALLING FUNCTION ENDED
-
-
-  // ================= DATE FILTER
-
-  const filterForecastByDate = (forecastData) => {
-    const filteredData = {};
-    forecastData.forEach((item) => {
-      const date = item.dt_txt.split(' ')[0]; // Extract date from dt_txt
-      if (!filteredData[date]) {
-        filteredData[date] = item;
-      }
-    });
-    return Object.values(filteredData);
-  };
-
-  // ================= DATE FILTER FUNCTION ENDED
-
-
-  // ================= CODE FOR WEATHER API CALL 
-
-  const fetchForecast = async () => {
-    setLoading(true);
-    console.log("city id", cityId)
-    try {
-      const response = await fetch(`http://api.openweathermap.org/data/2.5/forecast?id=${cityId}&appid=${API_KEY}`);
-      const api = await response.json();
-      if (response.status === 200) {
-        const filteredData = filterForecastData(api.list);
-        setForecast(api);
-        setList(filterForecastByDate(api.list));
-      } else {
-        setError('Location not found');
-      }
-    } catch (error) {
-      console.error('Error fetching weather data:', error);
-      setError('Error fetching weather data');
-    }
-    setLoading(false);
-  };
-
-  // ================= CODE FOR WEATHER API CALL ENDED
-
-
-  // ================= CODE FOR filterForecastData 
-
-  const filterForecastData = (forecastData) => {
-    const filteredData = [];
-    const datesSet = new Set();
-    forecastData.forEach((item) => {
-      const date = item.dt_txt.split(' ')[0]; // Extracting date from dt_txt
-      if (!datesSet.has(date)) {
-        datesSet.add(date);
-        filteredData.push(item);
-      }
-    });
-    return filteredData;
-  };
-
-  // ================= CODE FOR filterForecastData ENDED
 
 
   // Get today's date
@@ -287,32 +212,16 @@ const HomeScreen = () => {
             </ScrollView>
           </View>
         ) : null}
-
-        <View style={styles.forecastContainer}>
-          <LinearGradient
-            colors={darkMode ? ['gray', 'grey'] : ['lightblue', 'skyblue']}
-            style={styles.details} style={styles.outerView}>
-            {list.map((item, index) => (
-              <View key={index} style={styles.forecastItem}>
-                <View style={styles.day}>
-                  <Text style={styles.text0}>{formatDate(item.dt_txt)}</Text>
-                  <View style={styles.forcastDetails}>
-                    <FontAwesome6 name='temperature-high' size={16} color={'white'} />
-                    <Text style={styles.text}> {((item.main.temp - 273.15).toFixed(1))}°C</Text>
-                  </View>
-                  <View style={styles.forcastDetails}>
-                    <SimpleLineIcons name='drop' size={16} color={'white'} />
-                    <Text style={styles.text}> {item.main.humidity}%</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </LinearGradient>
-        </View>
+        
       </ScrollView>
     </View >
   );
 };
+
+
+
+
+export default HomeScreen
 
 const styles = StyleSheet.create({
   container: {
@@ -496,6 +405,4 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: 'white',
   }
-});
-
-export default HomeScreen;
+})
